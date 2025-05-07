@@ -82,20 +82,20 @@ class Player:
         self.check_collision(platforms)
 
     def draw(self, surface):
-        pygame.draw.rect(surface, RED, (self.x, self.y, self.w, self.h))
+        pygame.draw.rect(surface, WHITE, (self.x, self.y, self.w, self.h))
 
 
 #-end of classes----------------------------------------------------------------------------------------------
 
 # Platforms
 platforms = [
-    Platform(1, 800, 1800, 40),
+    Platform(1, 800, 2500, 40),
     Platform(650, 750, 660, 100),#z, y, size z , size y 
     Platform(710, 700, 160, 100),
     Platform(870, 660, 200, 100),
     Platform(990, 610, 250, 140),
     Platform(1230, 700, 290, 100),
-    Platform(1650, 750, 660, 100),
+    Platform(1650, 770, 660, 100),
 ]
 
 player = Player(100, 100) #calling player class constructor
