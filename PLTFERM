@@ -1,0 +1,147 @@
+import pygame
+
+pygame.init()
+screen = pygame.display.set_mode((1800, 850))
+pygame.display.set_caption("PLTFERM")
+background_image = pygame.image.load(r"C:\Users\802910\Desktop\The exit.jpg")
+
+clock = pygame.time.Clock()
+GRAVITY = 0.7
+bg_x1 = 0
+bg_x2 = 800
+offset = 0
+
+#Colors
+WHITE = (255, 255, 255)
+BLUE = (0, 100, 255)
+GREEN = (0, 200, 0)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GRAY = (50, 47, 47)
+
+
+#-class platform----------------------------------------------------------------------------------------------
+class Platform:
+    
+    def __init__(self, x, y, w, h): #constructor
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+
+    def draw(self, surface, offset): #draw function
+        pygame.draw.rect(surface, GRAY, (self.x + offset, self.y, self.w, self.h))
+        
+#-class player----------------------------------------------------------------------------------------------
+class Player:
+    
+    def __init__(self, x, y): #constructor
+        self.x = x
+        self.y = y
+        self.w = 40
+        self.h = 40
+        self.vy = 0
+        self.on_ground = False
+
+    def handle_input(self, keys):
+        global offset
+        if keys[pygame.K_LEFT]:
+            if self.x > 400:
+                self.x -= 5
+            else:
+                offset += 5
+        if keys[pygame.K_RIGHT]:
+            if self.x < 800:
+                self.x += 5
+            else:
+                offset -= 5
+        if keys[pygame.K_SPACE] and self.on_ground:
+            self.vy = -12
+            self.on_ground = False
+
+    def apply_gravity(self): #make player fall
+        self.vy += GRAVITY
+        self.y += self.vy
+
+    def check_collision(self, platforms): 
+        self.on_ground = False #assume we're in the air, change if not
+        for plat in platforms: #check all the platforms in the list
+            if self.is_colliding(plat): #if we ARE colliding, reset feet to top of platform...
+                if self.y + self.h <= plat.y + self.vy:
+                    self.y = plat.y - self.h
+                    self.vy = 0
+                    self.on_ground = True
+
+    def is_colliding(self, plat): #bounding box collision
+        if self.x + self.w > plat.x + offset and self.x < plat.x + plat.w + offset and self.y + self.h > plat.y and self.y < plat.y + plat.h:
+            return True
+        return False
+        
+    def update(self, platforms): #funtion that calls a bunch of other functions (keeps game loop more simple)
+        self.apply_gravity()
+        self.check_collision(platforms)
+
+    def draw(self, surface):
+        pygame.draw.rect(surface, RED, (self.x, self.y, self.w, self.h))
+
+
+#-end of classes----------------------------------------------------------------------------------------------
+
+# Platforms
+platforms = [
+    Platform(1, 800, 1800, 40),
+    Platform(650, 750, 660, 100),#z, y, size z , size y 
+    Platform(710, 700, 160, 100),
+    Platform(870, 660, 200, 100),
+    Platform(990, 610, 250, 140),
+    Platform(1230, 700, 290, 100),
+    Platform(1650, 750, 660, 100),
+]
+
+player = Player(100, 100) #calling player class constructor
+
+death_zone = pygame.Rect(1, 840, 1800, 10)  
+
+font2 = pygame.font.SysFont(None, 100)
+
+running = True
+while running:
+    
+    #input section-------------------
+    clock.tick(60)
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    keys = pygame.key.get_pressed()
+    player.handle_input(keys)
+
+    #update/physics section-----------
+    player.update(platforms)
+
+    # Check for death zone collision
+    player_rect = pygame.Rect(player.x, player.y, player.w, player.h)
+    if player_rect.colliderect(death_zone):
+        text = font2.render("You Died!", True, (255, 25, 0))
+        screen.blit(text, (800, 400))
+        pygame.display.flip()
+        pygame.time.delay(2000)
+        running = False
+
+    #render section-------------------
+    screen.blit(background_image, (bg_x1 + offset // 2, 0))
+    screen.blit(background_image, (bg_x2 + offset // 2, 0))
+    
+    
+    for plat in platforms:
+        plat.draw(screen, offset)
+
+   
+    pygame.draw.rect(screen, (200, 0, 0), death_zone)
+
+    player.draw(screen)
+    pygame.display.flip()
+
+pygame.quit()
+
