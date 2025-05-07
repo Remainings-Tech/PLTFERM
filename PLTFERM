@@ -6,7 +6,7 @@ pygame.display.set_caption("PLTFERM")
 background_image = pygame.image.load(r"C:\Users\802910\Desktop\The exit.jpg")
 
 clock = pygame.time.Clock()
-GRAVITY = 0.7
+GRAVITY = 0.1
 bg_x1 = 0
 bg_x2 = 800
 offset = 0
@@ -89,6 +89,7 @@ class Player:
 
 # Platforms
 platforms = [
+    Platform(1, 1, 30, 810),
     Platform(1, 800, 2500, 40),
     Platform(650, 750, 660, 100),#z, y, size z , size y 
     Platform(710, 700, 160, 100),
