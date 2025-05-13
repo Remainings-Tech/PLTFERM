@@ -3,22 +3,22 @@ import pygame
 pygame.init()
 screen = pygame.display.set_mode((1800, 850))
 pygame.display.set_caption("PLTFERM")
-background_image = pygame.image.load(r"C:\Users\802910\Desktop\The exit.jpg")
+background_image = pygame.image.load(r"C:\Users\802910\Desktop\cave.jpg")
 
 clock = pygame.time.Clock()
-GRAVITY = 0.1
+GRAVITY = 0.5
 bg_x1 = 0
 bg_x2 = 800
 offset = 0
 
 #Colors
 WHITE = (255, 255, 255)
-BLUE = (0, 100, 255)
+BROWN = (160, 82, 45)
 GREEN = (0, 200, 0)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
-GRAY = (50, 47, 47)
-
+GRAY = (50, 47, 47) 
+ORANGE = (255, 107, 0)
 
 #-class platform----------------------------------------------------------------------------------------------
 class Platform:
@@ -89,14 +89,27 @@ class Player:
 
 # Platforms
 platforms = [
-    Platform(1, 1, 30, 810),
-    Platform(1, 800, 2500, 40),
+    Platform(1, 1, 95, 810),
+    Platform(1, 800, 25000, 40),
     Platform(650, 750, 660, 100),#z, y, size z , size y 
     Platform(710, 700, 160, 100),
     Platform(870, 660, 200, 100),
     Platform(990, 610, 250, 140),
-    Platform(1230, 700, 290, 100),
+    Platform(2230, 700, 290, 100),
     Platform(1650, 770, 660, 100),
+    Platform(2200, 650, 100, 180),
+    Platform(2000, 600, 200, 180),
+    Platform(1900, 800, 200, 180),
+    Platform(1900, 550, 200, 280),
+    Platform(1750, 680, 380, 100),
+    Platform(2750, 670, 380, 150),
+    Platform(2950, 550, 380, 210),
+    Platform(2550, 760, 500, 50),
+    Platform(2700, 720, 715, 50),
+    Platform(3050, 510, 415, 300),
+    Platform(3350, 720, 445, 85),
+    Platform(3250, 675, 500, 50),
+    Platform(2900, 620, 500, 50),
 ]
 
 player = Player(100, 100) #calling player class constructor
@@ -109,7 +122,7 @@ running = True
 while running:
     
     #input section-------------------
-    clock.tick(60)
+    clock.tick(99999)
     
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -139,10 +152,9 @@ while running:
         plat.draw(screen, offset)
 
    
-    pygame.draw.rect(screen, (200, 0, 0), death_zone)
+    pygame.draw.rect(screen, (255, 102, 0), death_zone)
 
     player.draw(screen)
     pygame.display.flip()
 
 pygame.quit()
-
