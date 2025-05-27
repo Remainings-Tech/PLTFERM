@@ -4,94 +4,149 @@ pygame.init()
 screen = pygame.display.set_mode((1800, 850))
 pygame.display.set_caption("PLTFERM")
 background_image = pygame.image.load(r"C:\Users\802910\Desktop\cave.jpg")
-
 clock = pygame.time.Clock()
-GRAVITY = 0.5
+GRAVITY = 0.1
 bg_x1 = 0
 bg_x2 = 800
 offset = 0
 
-#Colors
+# Colors
 WHITE = (255, 255, 255)
 BROWN = (160, 82, 45)
 GREEN = (0, 200, 0)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
-GRAY = (50, 47, 47) 
+GRAY = (50, 47, 47)
 ORANGE = (255, 107, 0)
+GOLD = (212, 175, 55)
+BLUE = (0, 0, 255)
+PINK = (255, 105, 180)
 
-#-class platform----------------------------------------------------------------------------------------------
+# Platform class
 class Platform:
-    
-    def __init__(self, x, y, w, h): #constructor
+    def __init__(self, x, y, w, h):
         self.x = x
         self.y = y
         self.w = w
         self.h = h
 
-    def draw(self, surface, offset): #draw function
+    def draw(self, surface, offset):
         pygame.draw.rect(surface, GRAY, (self.x + offset, self.y, self.w, self.h))
-        
-#-class player----------------------------------------------------------------------------------------------
+
+# Key class
+class Key:
+    def __init__(self, x, y, color):
+        self.rect = pygame.Rect(x, y, 20, 20)
+        self.collected = False
+        self.color = color
+
+    def draw(self, surface, offset):
+        if not self.collected:
+            pygame.draw.rect(surface, self.color, (self.rect.x + offset, self.rect.y, self.rect.width, self.rect.height))
+
+# Door class
+class Door:
+    def __init__(self, x, y, w, h, color):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.color = color
+        self.open = False
+
+    def draw(self, surface, offset):
+        if not self.open:
+            pygame.draw.rect(surface, self.color, (self.rect.x + offset, self.rect.y, self.rect.width, self.rect.height))
+
+# Player class
 class Player:
-    
-    def __init__(self, x, y): #constructor
+    def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.w = 40
-        self.h = 40
+        self.w = 30
+        self.h = 30
+        self.vx = 0
         self.vy = 0
         self.on_ground = False
+        self.collected_keys = set()
 
     def handle_input(self, keys):
         global offset
+        self.vx = 0
         if keys[pygame.K_LEFT]:
-            if self.x > 400:
-                self.x -= 5
-            else:
-                offset += 5
+            self.vx = -5
         if keys[pygame.K_RIGHT]:
-            if self.x < 800:
-                self.x += 5
-            else:
-                offset -= 5
+            self.vx = 5
         if keys[pygame.K_SPACE] and self.on_ground:
             self.vy = -12
             self.on_ground = False
 
-    def apply_gravity(self): #make player fall
+    def apply_gravity(self):
         self.vy += GRAVITY
-        self.y += self.vy
 
-    def check_collision(self, platforms): 
-        self.on_ground = False #assume we're in the air, change if not
-        for plat in platforms: #check all the platforms in the list
-            if self.is_colliding(plat): #if we ARE colliding, reset feet to top of platform...
-                if self.y + self.h <= plat.y + self.vy:
+    def move_and_collide(self, platforms):
+        global offset
+        self.x += self.vx
+        for plat in platforms:
+            if self.is_colliding(plat):
+                if self.vx > 0:
+                    self.x = plat.x - self.w + offset
+                elif self.vx < 0:
+                    self.x = plat.x + plat.w + offset
+
+        if self.x > 800:
+            offset -= self.x - 800
+            self.x = 800
+        elif self.x < 400:
+            offset += 400 - self.x
+            self.x = 400
+
+        self.y += self.vy
+        self.on_ground = False
+        for plat in platforms:
+            if self.is_colliding(plat):
+                if self.vy > 0:
                     self.y = plat.y - self.h
                     self.vy = 0
                     self.on_ground = True
+                elif self.vy < 0:
+                    self.y = plat.y + plat.h
+                    self.vy = 0
 
-    def is_colliding(self, plat): #bounding box collision
-        if self.x + self.w > plat.x + offset and self.x < plat.x + plat.w + offset and self.y + self.h > plat.y and self.y < plat.y + plat.h:
-            return True
-        return False
-        
-    def update(self, platforms): #funtion that calls a bunch of other functions (keeps game loop more simple)
+    def is_colliding(self, plat):
+        return (
+            self.x + self.w > plat.x + offset and
+            self.x < plat.x + plat.w + offset and
+            self.y + self.h > plat.y and
+            self.y < plat.y + plat.h
+        )
+
+    def update(self, platforms, keys, doors):
         self.apply_gravity()
-        self.check_collision(platforms)
+        self.move_and_collide(platforms)
+
+        # Collect keys
+        for key in keys:
+            if not key.collected and pygame.Rect(self.x, self.y, self.w, self.h).colliderect(key.rect.move(offset, 0)):
+                key.collected = True
+                self.collected_keys.add(key.color)
+
+        # Door logic
+        for door in doors:
+            if not door.open and pygame.Rect(self.x, self.y, self.w, self.h).colliderect(door.rect.move(offset, 0)):
+                if door.color in self.collected_keys:
+                    door.open = True
+                else:
+                    if self.vx > 0:
+                        self.x = door.rect.left - self.w + offset
+                    elif self.vx < 0:
+                        self.x = door.rect.right + offset
 
     def draw(self, surface):
         pygame.draw.rect(surface, WHITE, (self.x, self.y, self.w, self.h))
 
-
-#-end of classes----------------------------------------------------------------------------------------------
-
-# Platforms
+# Create platforms (shortened for example)
 platforms = [
     Platform(1, 1, 95, 810),
-    Platform(1, 800, 25000, 40),
-    Platform(650, 750, 660, 100),#z, y, size z , size y 
+    Platform(1, 800, 7810, 40),
+    Platform(650, 750, 660, 100),
     Platform(710, 700, 160, 100),
     Platform(870, 660, 200, 100),
     Platform(990, 610, 250, 140),
@@ -110,31 +165,112 @@ platforms = [
     Platform(3350, 720, 445, 85),
     Platform(3250, 675, 500, 50),
     Platform(2900, 620, 500, 50),
+    Platform(1850, 630, 50, 50),
+    Platform(4150, 655, 575, 50),
+    Platform(4100, 700, 625, 50),
+    Platform(4200, 610, 525, 50),
+    Platform(4250, 570, 475, 50),
+    Platform(4300, 520, 425, 50),
+    Platform(4350, 470, 375, 50),
+    Platform(4400, 420, 325, 50),
+    Platform(4450, 370, 800, 50),
+    Platform(5250, 320, 50, 623),
+    Platform(4550, 340, 700, 50),
+    Platform(4680, 300, 300, 50),
+    Platform(4750, 250, 80, 50),
+    Platform(5250, 1, 50, 170),
+    Platform(5750, 670, 750, 50),
+    Platform(5800, 620, 650, 50),
+    Platform(5850, 570, 550, 50),
+    Platform(5800, 470, 300, 50),
+    Platform(5750, 420, 300, 50),
+    Platform(5700, 370, 300, 50),
+    Platform(5650, 320, 300, 50),
+    Platform(5600, 270, 300, 50),
+    Platform(5500, 220, 300, 50),
+    Platform(5400, 170, 300, 50),
+    Platform(5400, 120, 130, 50),
+    Platform(5350, 0, 130, 120),
+    Platform(6200, 470, 250, 50),
+    Platform(6250, 420, 300, 50),
+    Platform(6300, 370, 300, 50),
+    Platform(6350, 320, 300, 50),
+    Platform(6400, 270, 300, 50),
+    Platform(6450, 220, 300, 50),
+    Platform(6500, 170, 300, 50),
+    Platform(6550, 120, 300, 50),
+    Platform(6600, 70, 300, 50),
+    Platform(6850, 0, 50, 700),
+    Platform(6050, 0, 300, 200),
+    Platform(6450, 720, 50, 100),
+    Platform(6900, 420, 500, 50),
+    Platform(7350, 450, 50, 270),
+    Platform(4980, 750, 50, 50),
+    Platform(5700, 80, 500, 50),
+    Platform(4000, 0, 3000, 30),
+    Platform(5700, 700, 70, 50),
+    Platform(7700, 720, 120, 100),#z,y,size z, size y
+    Platform(7900, 600, 120, 400),
+    Platform(8100, 520, 120, 400),
+    Platform(8300, 400, 370, 200),
+    Platform(8300, 700, 400, 70),
+    Platform(8850, 700, 120, 700),
+    Platform(9050, 620, 100, 700),
+    Platform(9250, 500, 100, 500),
+    Platform(9400, 420, 70, 500),
+    Platform(9550, 300, 700, 400),
+    Platform(10550, 200, 125, 400),
+    Platform(10850, 100, 125, 400),
+    Platform(11150, 70, 75, 100),
+    Platform(11350, 500, 75, 100),
+    Platform(11450, 820, 475, 50),
+    Platform(10350, 180, 50, 500),
+    Platform(10750, 180, 50, 800),
+    Platform(12050, 699, 700, 100),
+    Platform(12850, 590, 65, 100),
+    Platform(12990, 520, 65, 100),
+    Platform(13100, 520, 1100, 1500),
+    Platform(13100, 1, 300, 400),
+] 
+
+# Keys with matching door colors
+keys = [
+    Key(5000, 730, BROWN),
+    Key(6400, 780, GREEN),
+    Key(6800, 40, RED),
+    Key(6000, 40, ORANGE),
+    Key(7100, 780, GOLD),
+    Key(6700, 780, BLUE),
 ]
 
-player = Player(100, 100) #calling player class constructor
+# Doors that match the key colors
+doors = [
+    Door(5250, 140, 50, 180, BROWN),
+    Door(5800, 520, 50, 100, GREEN),
+    Door(5800, 100, 50, 200, RED),
+    Door(6300, 520, 50, 50, ORANGE),
+    Door(6850, 700, 50, 120, BLUE),
+    Door(13200, 400, 50, 150, GOLD),
+]
 
-death_zone = pygame.Rect(1, 840, 1800, 10)  
-
+player = Player(100, 100)
+death_zone = pygame.Rect(1, 840, 1800, 10)
 font2 = pygame.font.SysFont(None, 100)
 
+# Game loop
 running = True
 while running:
-    
-    #input section-------------------
-    clock.tick(99999)
-    
+    clock.tick(9000)
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    keys = pygame.key.get_pressed()
-    player.handle_input(keys)
+    keys_pressed = pygame.key.get_pressed()
+    player.handle_input(keys_pressed)
+    player.update(platforms, keys, doors)
 
-    #update/physics section-----------
-    player.update(platforms)
-
-    # Check for death zone collision
+    # Death zone check
     player_rect = pygame.Rect(player.x, player.y, player.w, player.h)
     if player_rect.colliderect(death_zone):
         text = font2.render("You Died!", True, (255, 25, 0))
@@ -143,18 +279,23 @@ while running:
         pygame.time.delay(2000)
         running = False
 
-    #render section-------------------
     screen.blit(background_image, (bg_x1 + offset // 2, 0))
     screen.blit(background_image, (bg_x2 + offset // 2, 0))
-    
-    
+
     for plat in platforms:
         plat.draw(screen, offset)
 
-   
-    pygame.draw.rect(screen, (255, 102, 0), death_zone)
+    for key in keys:
+        key.draw(screen, offset)
 
+    for door in doors:
+        door.draw(screen, offset)
+
+    pygame.draw.rect(screen, (255, 102, 0), death_zone)
     player.draw(screen)
+
     pygame.display.flip()
 
 pygame.quit()
+
+#### BTW FOR THE BACKGROUND< YOU MUST EDIT TO MAKE THE IMAGE MUCH BIGGER, OTHERWISE IT WILL LOOK WEIRD
