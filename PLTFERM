@@ -5,7 +5,7 @@ screen = pygame.display.set_mode((1800, 850))
 pygame.display.set_caption("PLTFERM")
 background_image = pygame.image.load(r"C:\Users\802910\Desktop\cave.jpg")
 clock = pygame.time.Clock()
-GRAVITY = 0.1
+GRAVITY = 0.5
 bg_x1 = 0
 bg_x2 = 800
 offset = 0
@@ -122,17 +122,22 @@ class Player:
         self.apply_gravity()
         self.move_and_collide(platforms)
 
-        # Collect keys
         for key in keys:
             if not key.collected and pygame.Rect(self.x, self.y, self.w, self.h).colliderect(key.rect.move(offset, 0)):
                 key.collected = True
                 self.collected_keys.add(key.color)
 
-        # Door logic
         for door in doors:
             if not door.open and pygame.Rect(self.x, self.y, self.w, self.h).colliderect(door.rect.move(offset, 0)):
                 if door.color in self.collected_keys:
                     door.open = True
+                    if door.color == PINK:
+                        text = font2.render("Game Complete!", True, GREEN)
+                        screen.blit(text, (700, 400))
+                        pygame.display.flip()
+                        pygame.time.delay(3000)
+                        pygame.quit()
+                        exit()
                 else:
                     if self.vx > 0:
                         self.x = door.rect.left - self.w + offset
@@ -142,7 +147,7 @@ class Player:
     def draw(self, surface):
         pygame.draw.rect(surface, WHITE, (self.x, self.y, self.w, self.h))
 
-# Create platforms (shortened for example)
+# Your platforms here...
 platforms = [
     Platform(1, 1, 95, 810),
     Platform(1, 800, 7810, 40),
@@ -241,6 +246,7 @@ keys = [
     Key(6000, 40, ORANGE),
     Key(7100, 780, GOLD),
     Key(6700, 780, BLUE),
+    Key(13370, 500, PINK)  # ← New pink key
 ]
 
 # Doors that match the key colors
@@ -251,6 +257,7 @@ doors = [
     Door(6300, 520, 50, 50, ORANGE),
     Door(6850, 700, 50, 120, BLUE),
     Door(13200, 400, 50, 150, GOLD),
+    Door(13600, 400, 50, 150, PINK)  # ← New pink door
 ]
 
 player = Player(100, 100)
@@ -260,7 +267,7 @@ font2 = pygame.font.SysFont(None, 100)
 # Game loop
 running = True
 while running:
-    clock.tick(9000)
+    clock.tick(100)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -270,7 +277,6 @@ while running:
     player.handle_input(keys_pressed)
     player.update(platforms, keys, doors)
 
-    # Death zone check
     player_rect = pygame.Rect(player.x, player.y, player.w, player.h)
     if player_rect.colliderect(death_zone):
         text = font2.render("You Died!", True, (255, 25, 0))
@@ -297,5 +303,3 @@ while running:
     pygame.display.flip()
 
 pygame.quit()
-
-#### BTW FOR THE BACKGROUND< YOU MUST EDIT TO MAKE THE IMAGE MUCH BIGGER, OTHERWISE IT WILL LOOK WEIRD
